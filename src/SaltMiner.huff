@@ -1,0 +1,68 @@
+/* Interface */
+#define function mineSalt(bytes32,uint256,address) view returns (uint256,address)
+
+/* Constants */
+#define constant CREATE2_MARKER = 0xff
+#define constant PREFIX_MASK = 0x00ff00000000000000000000000000000000000000
+#define constant ADDRESS_MASK = 0x000000000000000000000000FFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF
+
+/* Methods */
+#define macro _MINE_SALT() = takes (3) returns (2) {
+    // takes:                   [deployerAddress, initCodeHash, prefix]
+
+    0x00 mstore              // [initCodeHash, prefix]
+    [CREATE2_MARKER]         // [0xff,initCodeHash, prefix]
+    0x0b mstore8             // [initCodeHash, prefix]
+    // leave 0x20-0x3f untouched so initial salt is 0x00
+    0x40 mstore              // [prefix]
+
+    // Memory layout
+    // Hashing  : 0xff(1) . deployerAddress(20) . salt(32) . initCodeHash(32)
+    // Hash size: 1 + 20 + 32 + 32 == 85 == 0x55
+    // Begins here at 0x0b with the CREATE2_MARKER, 0xff
+    //                                        \/
+    // 0x00: 00 00 00 00 00 00 00 00 00 00 00 ff |-- address(this) -------------- |
+    // 0x20: |------------------------ salt ------------------------------------- |
+    // 0x40: |----------------- keccak256(initCode) ----------------------------- |
+
+    begin_loop:
+        0x55 0x0b sha3       // [hash, prefix]
+        [ADDRESS_MASK] and   // [newAddress, prefix]
+        dup1                 // [newAddress, newAddress, prefix]
+        [PREFIX_MASK] and    // [maskedAddress, newAddress, prefix]
+        dup3                 // [prefix, maskedAddress, newAddress, prefix]
+        eq                   // [matchesPrefix, newAddress, prefix]
+        found jumpi          // [newAddress, prefix]
+
+        // use remaining gas as new salt, cheaper than maintining a counter
+        gas                  // [salt, newAddress, prefix]
+        // update salt in memory, not needed on stack
+        0x20 mstore          // [newAddress, prefix]
+        pop                  // [prefix]
+        begin_loop jump      // [prefix]
+
+    found:                   // [newAddress, prefix]
+        swap1                // [prefix, newAddress]
+        pop                  // [newAddress]
+        0x20 mload           // [salt, newAddress]
+}
+
+#define macro MINE_SALT() = takes (0) returns (0) {
+    0x24 calldataload        // [prefix]
+    0x04 calldataload        // [initCodeHash, prefix]
+    0x44 calldataload        // [deployerAddress, initCodeHash, prefix]
+    _MINE_SALT()             // [salt, newAddress]
+    0x00 mstore              // [newAddress]
+    0x20 mstore              // []
+    0x40 0x00 return         // []
+}
+
+#define macro MAIN() = takes (0) returns (0) {
+    0x00 calldataload 0xE0 shr
+    dup1 __FUNC_SIG(mineSalt) eq mineSalt jumpi
+
+    0x00 0x00 revert
+
+    mineSalt:
+        MINE_SALT()
+}
