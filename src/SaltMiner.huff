@@ -1,3 +1,17 @@
+/*
+
+███████╗ █████╗ ██╗  ████████╗███╗   ███╗██╗███╗   ██╗███████╗██████╗
+██╔════╝██╔══██╗██║  ╚══██╔══╝████╗ ████║██║████╗  ██║██╔════╝██╔══██╗
+███████╗███████║██║     ██║   ██╔████╔██║██║██╔██╗ ██║█████╗  ██████╔╝
+╚════██║██╔══██║██║     ██║   ██║╚██╔╝██║██║██║╚██╗██║██╔══╝  ██╔══██╗
+███████║██║  ██║███████╗██║   ██║ ╚═╝ ██║██║██║ ╚████║███████╗██║  ██║
+╚══════╝╚═╝  ╚═╝╚══════╝╚═╝   ╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝
+
+*/
+
+/// @notice A utility for finding the salt for a CREATE2 address for a UniV4 Hook
+/// @author devtooligan
+
 /* Interface */
 #define function mineSalt(bytes32,uint256,address) view returns (uint256,address)
 
@@ -32,6 +46,10 @@
         [PREFIX_MASK] and    // [maskedAddress, newAddress, prefix]
         dup3                 // [prefix, maskedAddress, newAddress, prefix]
         eq                   // [matchesPrefix, newAddress, prefix]
+        dup2                 // [newAddress, matchesPrefix, newAddress, prefix]
+        extcodesize          // [codeSize, matchesPrefix, newAddress, prefix]
+        iszero               // [noCode, matchesPrefix, newAddress, prefix]
+        and                  // [matchesPrefix && noCode, newAddress, prefix]
         found jumpi          // [newAddress, prefix]
 
         // use remaining gas as new salt, cheaper than maintining a counter

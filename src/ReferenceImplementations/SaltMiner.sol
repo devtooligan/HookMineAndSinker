@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity =0.8.15;
+pragma solidity =0.8.19;
 
 contract HookMineAndSinker {
     uint256 constant PREFIX_MASK = 0x00ff00000000000000000000000000000000000000;

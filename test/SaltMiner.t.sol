@@ -1,24 +1,50 @@
 // SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.19;
 
 import "foundry-huff/HuffDeployer.sol";
+import {HookDeployer} from "../src/HookDeployer.sol";
+import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
+import {IHooks} from "@uniswap/v4-core/contracts/interfaces/IHooks.sol";
+import {PoolManager} from "@uniswap/v4-core/contracts/PoolManager.sol";
+import {LimitOrder} from "@uniswap/v4-periphery/contracts/hooks/examples/LimitOrder.sol";
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
 contract SaltMinerTest is Test {
-    /// @dev Address of the SaltMiner contract.
     ISaltMiner public saltMiner;
+    PoolManager manager;
 
     /// @dev Setup the testing environment.
     function setUp() public {
         saltMiner = ISaltMiner(HuffDeployer.deploy("SaltMiner"));
+        manager = new PoolManager(500000);
+
     }
 
     /// @dev Ensure that you can set and get the value.
-    function testMineSalt() public {
-        (uint256 salt, address newAddress) = saltMiner.mineSalt(keccak256("myCode"), uint(0x004400000000000000000000000000000000000000), address(this));
-        console.log(salt);
-        console.log(newAddress);
+    function testMineSalt__LimitOrder() public {
+        // LimitOrder
+        bytes memory initCode = abi.encodePacked(type(LimitOrder).creationCode, abi.encode(manager));
+        bytes32 initCodeHash = keccak256(initCode);
+        uint prefix = HookDeployer.getPrefix(Hooks.Calls({
+            beforeInitialize: false,
+            afterInitialize: true,
+            beforeModifyPosition: false,
+            afterModifyPosition: false,
+            beforeSwap: false,
+            afterSwap: true,
+            beforeDonate: false,
+            afterDonate: false
+        }));
+
+        uint start = gasleft();
+        (uint256 salt, address expectedAddress) = saltMiner.mineSalt(initCodeHash, prefix, address(this));
+        console.log("gas used: %s", salt);
+        address actualAddress = HookDeployer.deployHook(initCode, salt);
+
+        // console.log(salt);
+        // console.log(expectedAddress);
+        // console.log(actualAddress);
     }
 }
 
