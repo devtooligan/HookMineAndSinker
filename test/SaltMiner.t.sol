@@ -4,7 +4,6 @@ pragma solidity ^0.8.19;
 import "foundry-huff/HuffDeployer.sol";
 import {HookDeployer} from "../src/HookDeployer.sol";
 import {Hooks} from "@uniswap/v4-core/contracts/libraries/Hooks.sol";
-import {IHooks} from "@uniswap/v4-core/contracts/interfaces/IHooks.sol";
 import {PoolManager} from "@uniswap/v4-core/contracts/PoolManager.sol";
 import {LimitOrder} from "@uniswap/v4-periphery/contracts/hooks/examples/LimitOrder.sol";
 import "forge-std/Test.sol";
@@ -41,10 +40,7 @@ contract SaltMinerTest is Test {
         (uint256 salt, address expectedAddress) = saltMiner.mineSalt(initCodeHash, prefix, address(this));
         console.log("gas used: %s", salt);
         address actualAddress = HookDeployer.deployHook(initCode, salt);
-
-        // console.log(salt);
-        // console.log(expectedAddress);
-        // console.log(actualAddress);
+        assertEq(actualAddress, expectedAddress);
     }
 }
 

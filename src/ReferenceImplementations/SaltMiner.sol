@@ -9,6 +9,8 @@ contract HookMineAndSinker {
     /// @param initCodeHash The keccak hash of the initCode of the contract to be deployed
     /// @param prefix The prefix of the hook address
     /// @return salt The salt that will produce a hook address with the given prefix
+
+    /// @notice SOLIDITY REFERENCE IMPLEMENTATION
     function mineSalt(bytes32 initCodeHash, uint256 prefix, address deployer)
         public
         view
@@ -16,11 +18,11 @@ contract HookMineAndSinker {
     {
         bool valid;
         while (true) {
-            newAddress =
-                address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), deployer, salt, initCodeHash)))));
+            bytes memory toHash = abi.encodePacked(bytes1(0xff), deployer, salt, initCodeHash);
+            newAddress = address(uint160(uint256(keccak256(toHash))));
 
             assembly {
-                valid := eq(and(newAddress, 0x00ff00000000000000000000000000000000000000), prefix)
+                valid := eq(and(newAddress, PREFIX_MASK), prefix)
             }
             if (valid) {
                 break;
