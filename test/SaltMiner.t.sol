@@ -36,14 +36,14 @@ contract SaltMinerTest is Test {
             afterDonate: false
         }));
 
-        uint start = gasleft();
-        (uint256 salt, address expectedAddress) = saltMiner.mineSalt(initCodeHash, prefix, address(this));
-        console.log("gas used: %s", salt);
+        // uint start = gasleft();
+        (uint256 salt, address expectedAddress) = saltMiner.mineSalt(address(this), prefix,initCodeHash );
+        console.log("salt: %s", salt);
         address actualAddress = HookDeployer.deployHook(initCode, salt);
         assertEq(actualAddress, expectedAddress);
     }
 }
 
 interface ISaltMiner {
-    function mineSalt(bytes32 initCodeHash,uint256 prefix, address deployer) external view returns (uint256,address);
+    function mineSalt( address deployer,uint256 prefix,bytes32 initCodeHash) external view returns (uint256,address);
 }
